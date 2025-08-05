@@ -16,7 +16,7 @@ A Chrome extension that replaces chess file letters (a-h) with Hebrew letters (×
 1. Download or clone this repository
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension folder
+4. Click "Load unpacked" and select the `dist` folder
 5. Navigate to chess.com and enjoy Hebrew chess coordinates!
 
 ## Letter Mapping
@@ -52,7 +52,7 @@ hebrew-chess-files/
 ```
 
 ### Building
-No build process required - this is a pure JavaScript Chrome extension.
+Run `npm install` and then `npm run build` to generate the production files in the `dist` folder.
 
 ### Testing
 1. Load the extension in development mode

@@ -3,6 +3,8 @@
  * Controls extension settings and displays current status
  */
 
+import './style.css';
+
 (function() {
     'use strict';
 
