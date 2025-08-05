@@ -42,10 +42,17 @@
     };
 
     // State management
-    let observer = null;
+    let coordinateMutationObserver = null;
     let debounceTimeout = null;
-    let isEnabled = true;
+
+    // Hebrew File Letters Feature
+    let hebrewFilesEnabled = true;
     let processedElements = new WeakSet();
+
+    // Hide Player Names Feature
+    let hideNamesEnabled = false;
+    let showNames = false;
+    let playerObserver = null;
 
     /**
      * Load extension settings from storage
@@ -53,13 +60,39 @@
     async function loadSettings() {
         try {
             const result = await chrome.storage.sync.get({
-                extensionEnabled: true
+                hebrewFilesEnabled: true
             });
-            isEnabled = result.extensionEnabled;
+            hebrewFilesEnabled = result.hebrewFilesEnabled;
         } catch (error) {
             console.warn(`${CONFIG.EXTENSION_NAME}: Failed to load settings, using defaults:`, error);
-            isEnabled = true;
+            hebrewFilesEnabled = true;
         }
+    }
+
+    /**
+     * Sets visibility for player names and ratings
+     */
+    function setPlayerNamesAndRatingsVisibility() {
+        const nameElements = document.querySelectorAll('.player-tagline .cc-user-block-component');
+        const ratingElements = document.querySelectorAll('.player-tagline .rating-score-component');
+        [...nameElements, ...ratingElements].forEach(el => {
+            el.style.display = (hideNamesEnabled && !showNames) ? 'none' : '';
+        });
+    }
+
+    /**
+     * Watches for changes in player tagline and resets secondary toggle
+     */
+    function watchPlayerTaglineChanges() {
+        if (playerObserver) playerObserver.disconnect();
+        const container = document.querySelector('.player-tagline');
+        if (!container) return;
+        playerObserver = new MutationObserver(() => {
+            // Reset secondary toggle to off (names hidden)
+            chrome.storage.sync.set({ showNames: false, resetShowNames: true });
+            setPlayerNamesAndRatingsVisibility();
+        });
+        playerObserver.observe(container, { childList: true, subtree: true });
     }
 
     /**
@@ -67,7 +100,7 @@
      * @param {SVGElement} svg - The SVG element containing coordinate text
      */
     function replaceFileLettersInSvg(svg) {
-        if (!svg?.querySelectorAll || !isEnabled) return;
+        if (!svg?.querySelectorAll || !hebrewFilesEnabled) return;
 
         try {
             const textElements = svg.querySelectorAll(CONFIG.SELECTORS.TEXT_ELEMENTS);
@@ -120,7 +153,7 @@
      * Processes all coordinate SVGs on the page
      */
     function processAllCoordinateSvgs() {
-        if (!isEnabled) return;
+        if (!hebrewFilesEnabled) return;
 
         try {
             const coordinateSvgs = document.querySelectorAll(CONFIG.SELECTORS.COORDINATES_SVG);
@@ -198,20 +231,20 @@
     }
 
     /**
-     * Sets up the mutation observer to watch for relevant DOM changes
+     * Sets up the mutation observer to watch for coordinate SVG DOM changes
      */
-    function initializeMutationObserver() {
-        if (observer) return;
+    function setupCoordinateMutationObserver() {
+        if (coordinateMutationObserver) return;
 
-        observer = new MutationObserver((mutations) => {
-            if (isEnabled && mutations.some(isRelevantMutation)) {
+        coordinateMutationObserver = new MutationObserver((mutations) => {
+            if (hebrewFilesEnabled && mutations.some(isRelevantMutation)) {
                 debouncedProcess();
             }
         });
 
         const targetNode = document.body || document.documentElement;
         if (targetNode) {
-            observer.observe(targetNode, {
+            coordinateMutationObserver.observe(targetNode, {
                 childList: true,
                 subtree: true,
                 characterData: true
@@ -227,13 +260,13 @@
             if (areaName !== 'sync') return;
 
             try {
-                if (changes.extensionEnabled) {
-                    const newEnabled = changes.extensionEnabled.newValue;
+                if (changes.hebrewFilesEnabled) {
+                    const newEnabled = changes.hebrewFilesEnabled.newValue;
 
-                    if (newEnabled !== isEnabled) {
-                        isEnabled = newEnabled;
+                    if (newEnabled !== hebrewFilesEnabled) {
+                        hebrewFilesEnabled = newEnabled;
 
-                        if (isEnabled) {
+                        if (hebrewFilesEnabled) {
                             // Clear processed elements set to reprocess everything
                             processedElements = new WeakSet();
                             processAllCoordinateSvgs();
@@ -243,12 +276,26 @@
                     }
                 }
 
-                // Handle force refresh trigger
-                if (changes.forceRefresh) {
-                    if (isEnabled) {
-                        processedElements = new WeakSet();
-                        processAllCoordinateSvgs();
+                if (changes.hideNamesEnabled) {
+                    hideNamesEnabled = changes.hideNamesEnabled.newValue;
+                    if (hideNamesEnabled) {
+                        watchPlayerTaglineChanges();
+                        setPlayerNamesAndRatingsVisibility();
+                    } else {
+                        if (playerObserver) playerObserver.disconnect();
+                        // Show names when feature is disabled
+                        const elements = document.querySelectorAll('.player-tagline .cc-user-block-component');
+                        elements.forEach(el => { el.style.display = ''; });
                     }
+                }
+
+                if (changes.showNames) {
+                    showNames = changes.showNames.newValue;
+                    setPlayerNamesAndRatingsVisibility();
+                }
+                if (changes.resetShowNames) {
+                    showNames = false;
+                    setPlayerNamesAndRatingsVisibility();
                 }
 
             } catch (error) {
@@ -261,14 +308,19 @@
      * Cleans up resources when the page is unloaded
      */
     function cleanup() {
-        if (observer) {
-            observer.disconnect();
-            observer = null;
+        if (coordinateMutationObserver) {
+            coordinateMutationObserver.disconnect();
+            coordinateMutationObserver = null;
         }
 
         if (debounceTimeout) {
             clearTimeout(debounceTimeout);
             debounceTimeout = null;
+        }
+
+        if (playerObserver) {
+            playerObserver.disconnect();
+            playerObserver = null;
         }
     }
 
@@ -281,15 +333,24 @@
             await loadSettings();
 
             // Process existing coordinates if enabled
-            if (isEnabled) {
+            if (hebrewFilesEnabled) {
                 processAllCoordinateSvgs();
             }
 
             // Set up continuous monitoring
-            initializeMutationObserver();
+            setupCoordinateMutationObserver();
 
             // Set up storage listener for popup communication
             setupStorageListener();
+
+            // Load Hide Player Names settings
+            const result = await chrome.storage.sync.get({ hideNamesEnabled: false, showNames: false });
+            hideNamesEnabled = result.hideNamesEnabled;
+            showNames = result.showNames;
+            if (hideNamesEnabled) {
+                watchPlayerTaglineChanges();
+                setPlayerNamesAndRatingsVisibility();
+            }
 
             // Set up cleanup
             window.addEventListener('beforeunload', cleanup);

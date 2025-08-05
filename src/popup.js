@@ -10,7 +10,13 @@ import './style.css';
 
     // DOM elements
     const enableToggle = document.getElementById('enableToggle');
-    const statusElement = document.getElementById('status');
+    const hideNamesPrimaryToggle = document.getElementById('hideNamesPrimaryToggle');
+    const hideNamesSection = document.getElementById('hideNamesSection');
+
+    // State
+    let hideNamesEnabled = false;
+    let showNames = false;
+    let secondaryToggle = null;
 
     /**
      * Initialize the popup
@@ -23,9 +29,11 @@ import './style.css';
             // Set up event listeners
             setupEventListeners();
 
+            // Render the hide names section
+            renderHideNamesSection();
+
         } catch (error) {
             console.error('Popup initialization failed:', error);
-            updateStatus('Error loading extension', false);
         }
     }
 
@@ -35,29 +43,27 @@ import './style.css';
     async function loadSettings() {
         try {
             const result = await chrome.storage.sync.get({
-                extensionEnabled: true
+                hebrewFilesEnabled: true,
+                hideNamesEnabled: false,
+                showNames: false
             });
 
-            enableToggle.checked = result.extensionEnabled;
-            updateStatus(result.extensionEnabled ? 'Active' : 'Disabled', result.extensionEnabled);
+            enableToggle.checked = result.hebrewFilesEnabled;
+            hideNamesPrimaryToggle.checked = result.hideNamesEnabled;
+            hideNamesEnabled = result.hideNamesEnabled;
+            showNames = result.showNames;
 
         } catch (error) {
             console.error('Failed to load settings:', error);
-            updateStatus('Error loading settings', false);
         }
     }
 
     /**
-     * Save settings to storage and notify content script
+     * Save settings to storage
      */
-    async function saveSettings(enabled) {
+    async function saveSettings(settings) {
         try {
-            await chrome.storage.sync.set({
-                extensionEnabled: enabled
-            });
-
-            // The content script will automatically pick up the storage change
-            // No need to send messages since we don't have activeTab permission
+            await chrome.storage.sync.set(settings);
 
         } catch (error) {
             console.error('Failed to save settings:', error);
@@ -71,19 +77,78 @@ import './style.css';
         // Toggle switch
         enableToggle.addEventListener('change', async (e) => {
             const enabled = e.target.checked;
-            updateStatus(enabled ? 'Active' : 'Disabled', enabled);
 
-            await saveSettings(enabled);
+            await saveSettings({ hebrewFilesEnabled: enabled });
+        });
+
+        // Primary hide names toggle
+        hideNamesPrimaryToggle.addEventListener('change', async (e) => {
+            hideNamesEnabled = e.target.checked;
+            renderHideNamesSection();
+
+            await saveSettings({ hideNamesEnabled });
         });
     }
 
     /**
-     * Update status display
+     * Render the secondary toggle section dynamically
      */
-    function updateStatus(message, isActive) {
-        statusElement.textContent = message;
-        statusElement.className = `status ${isActive ? 'active' : 'inactive'}`;
+    function renderHideNamesSection() {
+        hideNamesSection.innerHTML = '';
+        if (!hideNamesEnabled) return;
+
+        // Create secondary toggle
+        const container = document.createElement('div');
+        container.className = 'toggle-container';
+
+        const label = document.createElement('span');
+        label.className = 'toggle-label';
+        label.textContent = 'Show Player Names';
+
+        const switchLabel = document.createElement('label');
+        switchLabel.className = 'toggle-switch';
+
+        secondaryToggle = document.createElement('input');
+        secondaryToggle.type = 'checkbox';
+        secondaryToggle.id = 'showNamesToggle';
+        secondaryToggle.checked = showNames;
+
+        const slider = document.createElement('span');
+        slider.className = 'slider';
+
+        switchLabel.appendChild(secondaryToggle);
+        switchLabel.appendChild(slider);
+        container.appendChild(label);
+        container.appendChild(switchLabel);
+        hideNamesSection.appendChild(container);
+
+        // Event listener for secondary toggle
+        secondaryToggle.addEventListener('change', async (e) => {
+            showNames = e.target.checked;
+            await saveSettings({ showNames });
+        });
     }
+
+    // Listen for storage changes to reset secondary toggle when needed
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'sync') return;
+
+        if (changes.hideNamesEnabled) {
+            hideNamesEnabled = changes.hideNamesEnabled.newValue;
+            renderHideNamesSection();
+        }
+
+        if (changes.showNames) {
+            showNames = changes.showNames.newValue;
+            if (secondaryToggle) secondaryToggle.checked = showNames;
+        }
+
+        // Reset secondary toggle to off if requested
+        if (changes.resetShowNames) {
+            showNames = false;
+            if (secondaryToggle) secondaryToggle.checked = false;
+        }
+    });
 
     // Initialize when popup loads
     document.addEventListener('DOMContentLoaded', initialize);
