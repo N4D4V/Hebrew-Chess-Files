@@ -70,5 +70,6 @@ MIT License - see LICENSE file for details.
 
 ## Changelog
 
-### v1.0.0
+### v1.1.0
 - Initial release
+- Added feature to hide player names and rating

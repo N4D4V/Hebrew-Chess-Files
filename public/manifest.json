@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Hebrew Chess Files",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Replaces chess file letters (a-h) with Hebrew letters (א-ח) on chess.com.",
     "content_scripts": [
         {
