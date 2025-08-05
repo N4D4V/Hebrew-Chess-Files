@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Hebrew Chess Files",
+    "version": "1.0.0",
+    "description": "Replaces chess file letters (a-h) with Hebrew letters (א-ח) on chess.com.",
+    "content_scripts": [
+        {
+            "matches": [
+                "*://www.chess.com/*",
+                "*://chess.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_idle",
+            "all_frames": false
+        }
+    ],
+    "permissions": ["storage"],
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Hebrew Chess Files"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "author": "Nadav Goldenberg"
+}
