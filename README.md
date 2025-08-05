@@ -70,6 +70,7 @@ MIT License - see LICENSE file for details.
 
 ## Changelog
 
-### v1.1.0
+### v1.1.1
 - Initial release
 - Added feature to hide player names and rating
+- Will only hide the player name and rating and keep the country flag visible
