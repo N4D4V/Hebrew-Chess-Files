@@ -73,9 +73,9 @@
      * Sets visibility for player names and ratings
      */
     function setPlayerNamesAndRatingsVisibility() {
-        const nameElements = document.querySelectorAll('.player-tagline .cc-user-block-component');
-        const ratingElements = document.querySelectorAll('.player-tagline .rating-score-component');
-        [...nameElements, ...ratingElements].forEach(el => {
+        const usernameElements = document.querySelectorAll('.player-tagline .cc-user-username-component');
+        const ratingWhiteElements = document.querySelectorAll('.player-tagline .cc-user-rating-white');
+        [...usernameElements, ...ratingWhiteElements].forEach(el => {
             el.style.display = (hideNamesEnabled && !showNames) ? 'none' : '';
         });
     }
