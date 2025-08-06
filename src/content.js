@@ -4,7 +4,7 @@
  * Now supports enable/disable toggle and statistics
  *
  * @file content.js
- * @version 1.1.1
+ * @version 1.1.2
  * @author Nadav Goldenberg
  */
 

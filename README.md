@@ -70,7 +70,8 @@ MIT License - see LICENSE file for details.
 
 ## Changelog
 
-### v1.1.1
+### v1.1.2
 - Initial release
 - Added feature to hide player names and rating
 - Will only hide the player name and rating and keep the country flag visible
+- The extension will change the profile picture to a generic one and hide the user's flair
