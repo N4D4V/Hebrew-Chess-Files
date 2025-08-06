@@ -16,7 +16,12 @@ import './style.css';
     // State
     let hideNamesEnabled = false;
     let showNames = false;
-    let secondaryToggle = null;
+    let showNamesBtn = null; // Track the button globally
+
+    const CONFIG = {
+        SHOW_PLAYER_NAMES: 'הצגת פרטי שחקנים',
+        HIDE_PLAYER_NAMES: 'הסתרת פרטי שחקנים',
+    };
 
     /**
      * Initialize the popup
@@ -87,6 +92,12 @@ import './style.css';
             renderHideNamesSection();
 
             await saveSettings({ hideNamesEnabled });
+
+            const shouldShowNames = !hideNamesEnabled && !showNames;
+            if (showNames != shouldShowNames) {
+                showNames = shouldShowNames;
+                await saveSettings({ showNames });
+            }
         });
     }
 
@@ -95,36 +106,26 @@ import './style.css';
      */
     function renderHideNamesSection() {
         hideNamesSection.innerHTML = '';
+        showNamesBtn = null;
         if (!hideNamesEnabled) return;
 
-        // Create secondary toggle
+        // Create button instead of toggle
         const container = document.createElement('div');
         container.className = 'toggle-container';
 
-        const label = document.createElement('span');
-        label.className = 'toggle-label';
-        label.textContent = 'Show Player Names';
+        const button = document.createElement('button');
+        button.className = 'toggle-btn';
+        button.id = 'showNamesBtn';
+        button.textContent = showNames ? CONFIG.HIDE_PLAYER_NAMES : CONFIG.SHOW_PLAYER_NAMES;
+        showNamesBtn = button;
 
-        const switchLabel = document.createElement('label');
-        switchLabel.className = 'toggle-switch';
-
-        secondaryToggle = document.createElement('input');
-        secondaryToggle.type = 'checkbox';
-        secondaryToggle.id = 'showNamesToggle';
-        secondaryToggle.checked = showNames;
-
-        const slider = document.createElement('span');
-        slider.className = 'slider';
-
-        switchLabel.appendChild(secondaryToggle);
-        switchLabel.appendChild(slider);
-        container.appendChild(label);
-        container.appendChild(switchLabel);
+        container.appendChild(button);
         hideNamesSection.appendChild(container);
 
-        // Event listener for secondary toggle
-        secondaryToggle.addEventListener('change', async (e) => {
-            showNames = e.target.checked;
+        // Event listener for button
+        button.addEventListener('click', async () => {
+            showNames = !showNames;
+            button.textContent = showNames ? CONFIG.HIDE_PLAYER_NAMES : CONFIG.SHOW_PLAYER_NAMES;
             await saveSettings({ showNames });
         });
     }
@@ -140,13 +141,13 @@ import './style.css';
 
         if (changes.showNames) {
             showNames = changes.showNames.newValue;
-            if (secondaryToggle) secondaryToggle.checked = showNames;
+            if (showNamesBtn) showNamesBtn.textContent = showNames ? CONFIG.HIDE_PLAYER_NAMES : CONFIG.SHOW_PLAYER_NAMES;
         }
 
         // Reset secondary toggle to off if requested
         if (changes.resetShowNames) {
             showNames = false;
-            if (secondaryToggle) secondaryToggle.checked = false;
+            if (showNamesBtn) showNamesBtn.textContent = CONFIG.SHOW_PLAYER_NAMES;
         }
     });
 
