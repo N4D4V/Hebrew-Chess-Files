@@ -76,17 +76,19 @@
         const usernameElements = document.querySelectorAll('.player-tagline .cc-user-username-component');
         const ratingWhiteElements = document.querySelectorAll('.player-tagline .cc-user-rating-white');
         // Change avatar image src instead of hiding
-        const avatarElements = document.querySelectorAll('.player-component .player-avatar-component img');
+        const avatarElements = document.querySelectorAll('.player-component img');
         const flairElements = document.querySelectorAll('.cc-user-block-component .flair-rpc-component');
         [...usernameElements, ...ratingWhiteElements].forEach(el => {
             el.style.display = (hideNamesEnabled && !showNames) ? 'none' : '';
         });
+
         avatarElements.forEach(img => {
             if (hideNamesEnabled && !showNames) {
                 // Replace with a generic/blank avatar (use a data URI or a default image)
                 if (!img.dataset.originalSrc) {
                     img.dataset.originalSrc = img.src;
                 }
+
                 img.src = 'https://www.chess.com/bundles/web/images/user-image.007dad08.svg';
             } else if (img.dataset.originalSrc) {
                 img.src = img.dataset.originalSrc;
